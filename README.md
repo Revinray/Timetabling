@@ -1,6 +1,6 @@
-# Timetable Visualizer
+# Timetable Visualizer with Friends
 
-This project allows you to visualize timetables from NUSMods URLs. Follow the instructions below to use the `main.py` script.
+This project allows you to visualize timetables from NUSMods URLs (optionally with friends). Follow the instructions below to use the `main.py` script.
 
 ## Prerequisites
 
