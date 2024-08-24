@@ -20,7 +20,7 @@ lesson_type_mapping = {
     'Sectional Teaching': 'SEC'
 }
 
-def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR):
+def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
 
     # Increase the figure size
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -120,9 +120,14 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR):
                     lesson_type_short = lesson_type_mapping.get(session['lessonType'], session['lessonType'])
 
                     # Add text to the block only once
-                    ax.text(day_index * num_students + student_index, (start_index + end_index) / 2, 
-                            f"{module}\n{lesson_type_short}", ha='center', va='center', fontsize=8, 
-                            color='black', bbox=dict(facecolor='white', alpha=0.5))
+                    if flip_axes:
+                        ax.text((start_index + end_index) / 2 -0.5, day_index * num_students + student_index, 
+                                f"{module}\n{lesson_type_short}", ha='center', va='center', fontsize=8, 
+                                color='black', bbox=dict(facecolor='white', alpha=0.5))
+                    else:
+                        ax.text(day_index * num_students + student_index, (start_index + end_index) / 2 -0.5, 
+                                f"{module}\n{lesson_type_short}", ha='center', va='center', fontsize=8, 
+                                color='black', bbox=dict(facecolor='white', alpha=0.5))
 
             # Compare sets to ensure all sessions are plotted
             if sessions_plotted != sessions_in_timetable:
@@ -134,13 +139,22 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR):
     cmap = ListedColormap(['white'] + colors)
 
     # Create a heatmap for the timetable
-    ax.imshow(timetable_array, cmap=cmap, aspect='auto', alpha=0.5)
+    if flip_axes:
+        ax.imshow(timetable_array.T, cmap=cmap, aspect='auto', alpha=0.5)
+    else:
+        ax.imshow(timetable_array, cmap=cmap, aspect='auto', alpha=0.5)
 
     # Set the labels for the x-axis and y-axis
-    ax.set_xticks(np.arange(len(days)) * num_students + num_students / 2)
-    ax.set_yticks(np.arange(0, len(timeslots), 4))  # Show every hour (4 * 15 minutes)
-    ax.set_xticklabels(days)
-    ax.set_yticklabels([f"{timeslot[:2]}:{timeslot[2:]}" for timeslot in timeslots[::4]])  # Show every hour
+    if flip_axes:
+        ax.set_xticks(np.arange(0, len(timeslots), 4))  # Show every hour (4 * 15 minutes)
+        ax.set_yticks(np.arange(len(days)) * num_students + num_students / 2)
+        ax.set_xticklabels([f"{timeslot[:2]}:{timeslot[2:]}" for timeslot in timeslots[::4]])  # Show every hour
+        ax.set_yticklabels(days)
+    else:
+        ax.set_xticks(np.arange(len(days)) * num_students + num_students / 2)
+        ax.set_yticks(np.arange(0, len(timeslots), 4))  # Show every hour (4 * 15 minutes)
+        ax.set_xticklabels(days)
+        ax.set_yticklabels([f"{timeslot[:2]}:{timeslot[2:]}" for timeslot in timeslots[::4]])  # Show every hour
 
     # Remove the y-axis dashes
     ax.tick_params(axis='y', length=0)
@@ -148,9 +162,13 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR):
     # Remove the x-axis dashes
     ax.tick_params(axis='x', length=0)
 
-    # Draw vertical lines to separate each day
-    for day_index in range(1, len(days)):
-        plt.axvline(x=day_index * num_students - 0.5, color='black', linewidth=1)
+    # Draw lines to separate each day
+    if flip_axes:
+        for day_index in range(1, len(days)):
+            plt.axhline(y=day_index * num_students - 0.5, color='black', linewidth=1)
+    else:
+        for day_index in range(1, len(days)):
+            plt.axvline(x=day_index * num_students - 0.5, color='black', linewidth=1)
 
     # Add legend
     ax.legend(handles=legend_patches)
@@ -165,13 +183,13 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR):
 
     return fig
 
-# Test the function with example timetables
-url1 = "https://nusmods.com/timetable/sem-1/share?EE4704=PLEC:01,PTUT:01&IE2110=LEC:1,TUT:3&IE3102=LEC:1"
-url2 = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
-timetable1 = parse_nusmods_url(url1)
-timetable2 = parse_nusmods_url(url2)
-timetables_info = {
-    "Student A": {"timetable": timetable1, "color": "blue"},
-    "Student B": {"timetable": timetable2, "color": "green"}
-}
-fig = visualize_timetable(timetables_info, LOG_LEVEL=LOG_DEBUG)
+# # Test the function with example timetables
+# url1 = "https://nusmods.com/timetable/sem-1/share?EE4704=PLEC:01,PTUT:01&IE2110=LEC:1,TUT:3&IE3102=LEC:1"
+# url2 = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
+# timetable1 = parse_nusmods_url(url1)
+# timetable2 = parse_nusmods_url(url2)
+# timetables_info = {
+#     "Student A": {"timetable": timetable1, "color": "blue"},
+#     "Student B": {"timetable": timetable2, "color": "green"}
+# }
+# fig = visualize_timetable(timetables_info, LOG_LEVEL=LOG_DEBUG, flip_axes=False)
