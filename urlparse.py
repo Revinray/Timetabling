@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse, parse_qs
 
 # Define log levels
@@ -19,6 +20,17 @@ def parse_nusmods_url(url, LOG_LEVEL=LOG_NONE):
     # Initialize an empty dictionary to store the timetable
     timetable = {}
     
+    # Define a mapping dictionary for session types
+    session_type_mapping = {
+        'SEM': 'Seminar-Style Module Class',
+        'PLEC': 'Packaged Lecture',
+        'PTUT': 'Packaged Tutorial',
+        'LEC': 'Lecture',
+        'TUT': 'Tutorial',
+        'LAB': 'Laboratory',
+        'SEC': 'Sectional Teaching'
+    }
+    
     # Iterate over the query parameters
     for module, sessions in query_params.items():
         if LOG_LEVEL == LOG_DEBUG:
@@ -29,16 +41,26 @@ def parse_nusmods_url(url, LOG_LEVEL=LOG_NONE):
         if LOG_LEVEL == LOG_DEBUG:
             print(f"Sessions List: {sessions_list}")
         
-        # Convert LEC to Lecture, TUT to Tutorial, LAB to Laboratory, PLEC to Packaged Lecture, PTUT to Packaged Tutorial
-        sessions_list = [session.replace('SEM','Seminar-Style Module Class').replace('PLEC', 'Packaged Lecture').replace('PTUT', 'Packaged Tutorial').replace('LEC', 'Lecture').replace('TUT', 'Tutorial').replace('LAB', 'Laboratory').replace('SEC', 'Sectional Teaching') for session in sessions_list]
+        # Convert session types using the mapping dictionary and regex
+        converted_sessions_list = []
+        for session in sessions_list:
+            # First, handle patterns like TUT2, TUT_ etc.
+            for short_form, full_form in session_type_mapping.items():
+                session = re.sub(rf'({short_form})(\d+)', rf'{full_form} Type \2', session)
+                session = re.sub(rf'({short_form})([A-Za-z])', rf'{full_form} Type \2', session)
+            # Then, handle the normal cases without suffixes
+            for short_form, full_form in session_type_mapping.items():
+                session = re.sub(rf'\b{short_form}\b', full_form, session)
+            converted_sessions_list.append(session)
+        
         if LOG_LEVEL == LOG_DEBUG:
-            print(f"Converted Sessions List: {sessions_list}")
+            print(f"Converted Sessions List: {converted_sessions_list}")
         
         # Store the sessions in the timetable dictionary
-        timetable[module] = sessions_list
+        timetable[module] = converted_sessions_list
     
     return timetable
 
 # # Test the function with your example URL
-# url = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
+# url = "https://nusmods.com/timetable/sem-1/share?CS3243=TUT:06,LEC:1&EG2401A=TUT:509,LEC:2&GEN2001=LEC:1,TUT:E7&LAC3204=LEC:1&LAJ2202=TUT:A2,TUT2:B2,LEC:1&MA3264=LEC:1,TUT:1"
 # print(parse_nusmods_url(url, LOG_LEVEL=LOG_DEBUG))

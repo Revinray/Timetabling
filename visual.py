@@ -4,6 +4,7 @@ from matplotlib.patches import Patch
 from matplotlib.colors import ListedColormap
 from urlparse import parse_nusmods_url
 from request import get_module_data
+import re
 
 # Define log levels
 LOG_NONE = 0
@@ -20,6 +21,13 @@ lesson_type_mapping = {
     'Sectional Teaching': 'SEC',
     'Seminar-Style Module Class': 'SEM'
 }
+
+def shorten_lesson_type(lesson_type):
+    for full_form, short_form in lesson_type_mapping.items():
+        lesson_type = re.sub(rf'{full_form} Type (\d+)', rf'{short_form}\1', lesson_type)
+        lesson_type = re.sub(rf'{full_form} Type ([A-Za-z])', rf'{short_form}\1', lesson_type)
+        lesson_type = re.sub(rf'\b{full_form}\b', short_form, lesson_type)
+    return lesson_type
 
 def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
 
@@ -118,7 +126,7 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
                     sessions_plotted.add(session_key)
 
                     # Shorten the lessonType text
-                    lesson_type_short = lesson_type_mapping.get(session['lessonType'], session['lessonType'])
+                    lesson_type_short = shorten_lesson_type(session['lessonType'])
 
                     # Add text to the block only once
                     if flip_axes:
@@ -184,13 +192,13 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
 
     return fig
 
-# # Test the function with example timetables
-# url1 = "https://nusmods.com/timetable/sem-1/share?CLC3307=SEM:1&ESP3903=LAB:1,LEC:1&ESP4901=&GEX1015=LEC:1,TUT:W3&PC3242=TUT:1,LEC:1&PC3247=LEC:1"
-# url2 = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
-# timetable1 = parse_nusmods_url(url1)
-# timetable2 = parse_nusmods_url(url2)
-# timetables_info = {
-#     "Student A": {"timetable": timetable1, "color": "blue"},
-#     "Student B": {"timetable": timetable2, "color": "green"}
-# }
-# fig = visualize_timetable(timetables_info, LOG_LEVEL=LOG_DEBUG, flip_axes=False)
+# Test the function with example timetables
+url1 = "https://nusmods.com/timetable/sem-1/share?CS3243=TUT:06,LEC:1&EG2401A=TUT:509,LEC:2&GEN2001=LEC:1,TUT:E7&LAC3204=LEC:1&LAJ2202=TUT:A2,TUT2:B2,LEC:1&MA3264=LEC:1,TUT:1"
+url2 = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
+timetable1 = parse_nusmods_url(url1)
+timetable2 = parse_nusmods_url(url2)
+timetables_info = {
+    "Student A": {"timetable": timetable1, "color": "blue"},
+    "Student B": {"timetable": timetable2, "color": "green"}
+}
+fig = visualize_timetable(timetables_info, LOG_LEVEL=LOG_DEBUG, flip_axes=False)
