@@ -17,7 +17,8 @@ lesson_type_mapping = {
     'Lecture': 'LEC',
     'Tutorial': 'TUT',
     'Laboratory': 'LAB',
-    'Sectional Teaching': 'SEC'
+    'Sectional Teaching': 'SEC',
+    'Seminar-Style Module Class': 'SEM'
 }
 
 def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
@@ -184,7 +185,7 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
     return fig
 
 # # Test the function with example timetables
-# url1 = "https://nusmods.com/timetable/sem-1/share?EE4704=PLEC:01,PTUT:01&IE2110=LEC:1,TUT:3&IE3102=LEC:1"
+# url1 = "https://nusmods.com/timetable/sem-1/share?CLC3307=SEM:1&ESP3903=LAB:1,LEC:1&ESP4901=&GEX1015=LEC:1,TUT:W3&PC3242=TUT:1,LEC:1&PC3247=LEC:1"
 # url2 = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
 # timetable1 = parse_nusmods_url(url1)
 # timetable2 = parse_nusmods_url(url2)

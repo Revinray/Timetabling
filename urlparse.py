@@ -30,7 +30,7 @@ def parse_nusmods_url(url, LOG_LEVEL=LOG_NONE):
             print(f"Sessions List: {sessions_list}")
         
         # Convert LEC to Lecture, TUT to Tutorial, LAB to Laboratory, PLEC to Packaged Lecture, PTUT to Packaged Tutorial
-        sessions_list = [session.replace('PLEC', 'Packaged Lecture').replace('PTUT', 'Packaged Tutorial').replace('LEC', 'Lecture').replace('TUT', 'Tutorial').replace('LAB', 'Laboratory').replace('SEC', 'Sectional Teaching') for session in sessions_list]
+        sessions_list = [session.replace('SEM','Seminar-Style Module Class').replace('PLEC', 'Packaged Lecture').replace('PTUT', 'Packaged Tutorial').replace('LEC', 'Lecture').replace('TUT', 'Tutorial').replace('LAB', 'Laboratory').replace('SEC', 'Sectional Teaching') for session in sessions_list]
         if LOG_LEVEL == LOG_DEBUG:
             print(f"Converted Sessions List: {sessions_list}")
         
