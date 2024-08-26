@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Patch
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, to_hex, to_rgb
 from urlparse import parse_nusmods_url
 from request import get_module_data
 import re
@@ -28,6 +28,14 @@ def shorten_lesson_type(lesson_type):
         lesson_type = re.sub(rf'{full_form} Type ([A-Za-z])', rf'{short_form}\1', lesson_type)
         lesson_type = re.sub(rf'\b{full_form}\b', short_form, lesson_type)
     return lesson_type
+
+def luminance(color):
+    rgb = to_rgb(color)
+    return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+
+def get_contrasting_text_color(hex_color):
+    lum = luminance(hex_color)
+    return '#000000' if lum > 0.5 else '#FFFFFF'
 
 def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
 
@@ -128,15 +136,25 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
                     # Shorten the lessonType text
                     lesson_type_short = shorten_lesson_type(session['lessonType'])
 
+                    # Calculate the font size based on the block size
+                    if flip_axes:
+                        # block_height = end_index - start_index
+                        font_size = 5 # Adjust the multiplier as needed
+                    else:
+                        block_width = 1  # Each block represents one student
+                        font_size = min(8, block_width * 10)  # Adjust the multiplier as needed
+
                     # Add text to the block only once
                     if flip_axes:
-                        ax.text((start_index + end_index) / 2 -0.5, day_index * num_students + student_index, 
-                                f"{module}\n{lesson_type_short}", ha='center', va='center', fontsize=8, 
-                                color='black', bbox=dict(facecolor='white', alpha=0.5))
+                        text_color = get_contrasting_text_color(to_hex(color))
+                        ax.text(start_index, day_index * num_students + student_index - 0.3, 
+                                f"{module}\n{lesson_type_short}", ha='left', va='top', fontsize=font_size, 
+                                color=text_color)
                     else:
-                        ax.text(day_index * num_students + student_index, (start_index + end_index) / 2 -0.5, 
-                                f"{module}\n{lesson_type_short}", ha='center', va='center', fontsize=8, 
-                                color='black', bbox=dict(facecolor='white', alpha=0.5))
+                        text_color = get_contrasting_text_color(to_hex(color))
+                        ax.text(day_index * num_students + student_index - 0.3, start_index, 
+                                f"{module}\n{lesson_type_short}", ha='left', va='top', fontsize=font_size, 
+                                color=text_color)
 
             # Compare sets to ensure all sessions are plotted
             if sessions_plotted != sessions_in_timetable:
@@ -192,13 +210,13 @@ def visualize_timetable(timetables_info, LOG_LEVEL=LOG_ERROR, flip_axes=False):
 
     return fig
 
-# Test the function with example timetables
-url1 = "https://nusmods.com/timetable/sem-1/share?CS3243=TUT:06,LEC:1&EG2401A=TUT:509,LEC:2&GEN2001=LEC:1,TUT:E7&LAC3204=LEC:1&LAJ2202=TUT:A2,TUT2:B2,LEC:1&MA3264=LEC:1,TUT:1"
-url2 = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
-timetable1 = parse_nusmods_url(url1)
-timetable2 = parse_nusmods_url(url2)
-timetables_info = {
-    "Student A": {"timetable": timetable1, "color": "blue"},
-    "Student B": {"timetable": timetable2, "color": "green"}
-}
-fig = visualize_timetable(timetables_info, LOG_LEVEL=LOG_DEBUG, flip_axes=False)
+# # Test the function with example timetables
+# url1 = "https://nusmods.com/timetable/sem-1/share?CS3243=TUT:06,LEC:1&EG2401A=TUT:509,LEC:2&GEN2001=LEC:1,TUT:E7&LAC3204=LEC:1&LAJ2202=TUT:A2,TUT2:B2,LEC:1&MA3264=LEC:1,TUT:1"
+# url2 = "https://nusmods.com/timetable/sem-1/share?CS1231=TUT:03,SEC:1"
+# timetable1 = parse_nusmods_url(url1)
+# timetable2 = parse_nusmods_url(url2)
+# timetables_info = {
+#     "Student A": {"timetable": timetable1, "color": "blue"},
+#     "Student B": {"timetable": timetable2, "color": "green"}
+# }
+# fig = visualize_timetable(timetables_info, LOG_LEVEL=LOG_DEBUG, flip_axes=True)
