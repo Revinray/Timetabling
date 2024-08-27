@@ -1,6 +1,6 @@
 import logging
 from telegram import ForceReply, Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
 from check import freenow, freeuntil, freewhen
 from visual import generate_timetable_image
 import json
@@ -12,19 +12,27 @@ from environment import BOT_TOKEN, NGROK_URL, NGROK_PORT
 # Initialize Flask app
 app = Flask(__name__)
 
-def get_timetables_info(filename='timetables_info.json'):
-    """Read and return the timetable information from JSON file."""
-    with open(filename, 'r') as file:
-        timetables_info = json.load(file)
-    return timetables_info
-
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Define a few command handlers. These usually take the two arguments update and context.
+# Define states for the ConversationHandler
+URL, NAME, COLOR = range(3)
+
+# Temporary storage for timetable information
+temp_timetable_info = {}
+
+def get_timetables_info(chat_id):
+    """Read and return the timetable information from the chat store."""
+    try:
+        with open(f'chat_store/{chat_id}_timetables_info.json', 'r') as file:
+            timetables_info = json.load(file)
+    except FileNotFoundError:
+        timetables_info = {}
+    return timetables_info
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
@@ -35,7 +43,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text("Available commands:\n/freenow - Check who is free now\n/freeuntil - Check who is free and until when\n/freewhen <name> - Check when a specific person is free next\n/timetable - Generate and display the timetable")
+    await update.message.reply_text("Available commands:\n/freenow - Check who is free now\n/freeuntil - Check who is free and until when\n/freewhen <name> - Check when a specific person is free next\n/timetable - Generate and display the timetable\n/maketimetable - Create a new timetable")
 
 async def freenow_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message with the list of students who are free now."""
@@ -59,7 +67,8 @@ async def freewhen_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def timetable_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Generate and send the timetable image."""
-    timetables_info = get_timetables_info()
+    chat_id = update.message.chat_id
+    timetables_info = get_timetables_info(chat_id)
     image_path = generate_timetable_image(timetables_info)
     await update.message.reply_photo(photo=open(image_path, 'rb'))
 
@@ -71,6 +80,39 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Log the error and send a message to the user."""
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
     await update.message.reply_text("An error occurred. Please try again later.")
+
+async def maketimetable_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Start the maketimetable conversation and ask for the NUS URL."""
+    await update.message.reply_text("Please provide the NUS URL for the timetable:")
+    return URL
+
+async def received_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Store the NUS URL and ask for the name."""
+    temp_timetable_info['url'] = update.message.text
+    await update.message.reply_text("Please provide the name for the timetable:")
+    return NAME
+
+async def received_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Store the name and ask for the color."""
+    temp_timetable_info['name'] = update.message.text
+    await update.message.reply_text("Please provide the color for the timetable:")
+    return COLOR
+
+async def received_color(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Store the color and save the timetable information."""
+    temp_timetable_info['color'] = update.message.text
+    chat_id = update.message.chat_id
+    timetables_info = get_timetables_info(chat_id)
+    timetables_info[temp_timetable_info['name']] = temp_timetable_info
+    with open(f'chat_store/{chat_id}_timetables_info.json', 'w') as file:
+        json.dump(timetables_info, file)
+    await update.message.reply_text("Timetable information saved successfully!")
+    return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Cancel the conversation."""
+    await update.message.reply_text("Timetable creation cancelled.")
+    return ConversationHandler.END
 
 # Initialize the bot application
 application = Application.builder().token(BOT_TOKEN).build()
@@ -87,6 +129,19 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 # Add error handler to the application
 application.add_error_handler(error_handler)
 
+# Add ConversationHandler for maketimetable
+conv_handler = ConversationHandler(
+    entry_points=[CommandHandler('maketimetable', maketimetable_start)],
+    states={
+        URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_url)],
+        NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_name)],
+        COLOR: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_color)],
+    },
+    fallbacks=[CommandHandler('cancel', cancel)],
+)
+
+application.add_handler(conv_handler)
+
 # Webhook route
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -95,7 +150,6 @@ def webhook():
     asyncio.set_event_loop(loop)  # Set the new event loop
     loop.run_until_complete(application.process_update(update))
     return 'ok'
-
 
 if __name__ == '__main__':
     async def set_webhook_and_run():
