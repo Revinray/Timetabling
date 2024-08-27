@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define states for the ConversationHandler
-URL, NAME, COLOR = range(3)
+NAME, COLOR, URL = range(3)
 
 def get_timetables_info(chat_id):
     """Read and return the timetable information from the chat store."""
@@ -79,25 +79,25 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text("An error occurred. Please try again later.")
 
 async def maketimetable_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Start the maketimetable conversation and ask for the NUS URL."""
-    await update.message.reply_text("Please provide the NUS URL for the timetable:")
-    return URL
-
-async def received_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Store the NUS URL and ask for the name."""
-    context.user_data['url'] = update.message.text
+    """Start the maketimetable conversation and ask for the name."""
     await update.message.reply_text("Please provide the name for the timetable:")
     return NAME
 
 async def received_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the name and ask for the color."""
     context.user_data['name'] = update.message.text
-    await update.message.reply_text("Please provide the color for the timetable:")
+    await update.message.reply_text("Received name. Please provide the color for the timetable:")
     return COLOR
 
 async def received_color(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Store the color and save the timetable information."""
+    """Store the color and ask for the NUS URL."""
     context.user_data['color'] = update.message.text
+    await update.message.reply_text("Received color. Please provide the NUS URL for the timetable:")
+    return URL
+
+async def received_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Store the NUS URL and save the timetable information."""
+    context.user_data['url'] = update.message.text
     chat_id = update.message.chat_id
     timetables_info = get_timetables_info(chat_id)
     timetables_info[context.user_data['name']] = {
@@ -134,16 +134,12 @@ application.add_error_handler(error_handler)
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler('maketimetable', maketimetable_start)],
     states={
-        URL: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, received_url),
-            MessageHandler(filters.COMMAND, lambda update, context: update.message.reply_text("Please enter a URL, not a command."))
-        ],
         NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_name)],
         COLOR: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_color)],
+        URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_url)],
     },
     fallbacks=[CommandHandler('cancel', cancel)],
 )
-
 
 application.add_handler(conv_handler)
 
