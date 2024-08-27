@@ -153,6 +153,8 @@ def webhook():
     return 'ok'
 
 if __name__ == '__main__':
+    nest_asyncio.apply()  # Apply nest_asyncio to allow nested event loops
+
     async def set_webhook_and_run():
         logger.info("starting the application")
         await application.initialize()  # Ensure the application is initialized
@@ -162,5 +164,4 @@ if __name__ == '__main__':
         app.run(port=NGROK_PORT)
 
     # Run the asynchronous function
-    nest_asyncio.apply()
     asyncio.run(set_webhook_and_run())
