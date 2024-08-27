@@ -6,6 +6,7 @@ from visual import generate_timetable_image
 import json
 from flask import Flask, request
 from environment import BOT_TOKEN, NGROK_URL, NGROK_PORT
+import asyncio
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -145,7 +146,7 @@ application.add_handler(conv_handler)
 @app.route('/webhook', methods=['POST'])
 def webhook():
     update = Update.de_json(request.get_json(force=True), application.bot)
-    application.process_update(update)
+    asyncio.run(application.process_update(update))
     return 'ok'
 
 if __name__ == '__main__':
