@@ -134,12 +134,16 @@ application.add_error_handler(error_handler)
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler('maketimetable', maketimetable_start)],
     states={
-        URL: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_url)],
+        URL: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, received_url),
+            MessageHandler(filters.COMMAND, lambda update, context: update.message.reply_text("Please enter a URL, not a command."))
+        ],
         NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_name)],
         COLOR: [MessageHandler(filters.TEXT & ~filters.COMMAND, received_color)],
     },
     fallbacks=[CommandHandler('cancel', cancel)],
 )
+
 
 application.add_handler(conv_handler)
 
