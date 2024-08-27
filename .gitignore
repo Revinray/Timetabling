@@ -1,2 +1,4 @@
 timetables_info.json
 environment.py
+%.pyc
+__pycache__
