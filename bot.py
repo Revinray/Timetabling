@@ -67,6 +67,11 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
     await update.message.reply_text(update.message.text)
 
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error and send a message to the user."""
+    logger.error(msg="Exception while handling an update:", exc_info=context.error)
+    await update.message.reply_text("An error occurred. Please try again later.")
+
 # Initialize the bot application
 application = Application.builder().token(BOT_TOKEN).build()
 
@@ -79,12 +84,14 @@ application.add_handler(CommandHandler("freewhen", freewhen_command))
 application.add_handler(CommandHandler("timetable", timetable_command))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
+# Add error handler to the application
+application.add_error_handler(error_handler)
+
 # Webhook route
 @app.route('/webhook', methods=['POST'])
 def webhook():
     update = Update.de_json(request.get_json(force=True), application.bot)
-    loop = asyncio.new_event_loop()  # Create a new event loop
-    asyncio.set_event_loop(loop)  # Set the new event loop
+    loop = asyncio.get_event_loop()
     loop.run_until_complete(application.process_update(update))
     return 'ok'
 
