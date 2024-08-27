@@ -21,9 +21,6 @@ logger = logging.getLogger(__name__)
 # Define states for the ConversationHandler
 URL, NAME, COLOR = range(3)
 
-# Temporary storage for timetable information
-temp_timetable_info = {}
-
 def get_timetables_info(chat_id):
     """Read and return the timetable information from the chat store."""
     try:
@@ -88,22 +85,26 @@ async def maketimetable_start(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def received_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the NUS URL and ask for the name."""
-    temp_timetable_info['url'] = update.message.text
+    context.user_data['url'] = update.message.text
     await update.message.reply_text("Please provide the name for the timetable:")
     return NAME
 
 async def received_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the name and ask for the color."""
-    temp_timetable_info['name'] = update.message.text
+    context.user_data['name'] = update.message.text
     await update.message.reply_text("Please provide the color for the timetable:")
     return COLOR
 
 async def received_color(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the color and save the timetable information."""
-    temp_timetable_info['color'] = update.message.text
+    context.user_data['color'] = update.message.text
     chat_id = update.message.chat_id
     timetables_info = get_timetables_info(chat_id)
-    timetables_info[temp_timetable_info['name']] = temp_timetable_info
+    timetables_info[context.user_data['name']] = {
+        'url': context.user_data['url'],
+        'name': context.user_data['name'],
+        'color': context.user_data['color']
+    }
     with open(f'chat_store/{chat_id}_timetables_info.json', 'w') as file:
         json.dump(timetables_info, file)
     await update.message.reply_text("Timetable information saved successfully!")
