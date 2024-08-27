@@ -22,6 +22,12 @@ lesson_type_mapping = {
     'Seminar-Style Module Class': 'SEM'
 }
 
+def generate_timetable_image(timetables_info, filename='timetable.png', LOG_LEVEL=LOG_NONE, flip_axes=True):
+    fig = visualize_timetable(timetables_info, LOG_LEVEL, flip_axes)
+    fig.savefig(filename)
+    plt.close(fig)
+    return filename
+
 def shorten_lesson_type(lesson_type):
     for full_form, short_form in lesson_type_mapping.items():
         lesson_type = re.sub(rf'{full_form} Type (\d+)', rf'{short_form}\1', lesson_type)
